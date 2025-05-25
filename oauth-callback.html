@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>رمز الدخول من WHOOP</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; text-align: center; background: #f9f9f9; }
+    code { background: #eee; padding: 10px; display: block; margin: 1rem auto; font-size: 1.2em; }
+    .box { background: white; border: 1px solid #ccc; padding: 2rem; border-radius: 8px; max-width: 500px; margin: auto; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>🎉 تم تسجيل الدخول!</h1>
+    <p>انسخ هذا الكود وأرسله للمطور:</p>
+    <code id="codeBox">جارٍ التحميل...</code>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+
+    const box = document.getElementById("codeBox");
+    if (code) {
+      box.textContent = code;
+    } else {
+      box.textContent = "لم يتم العثور على كود. تأكد من أنك سجلت الدخول من رابط WHOOP الصحيح.";
+    }
+  </script>
+</body>
+</html>
