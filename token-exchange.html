@@ -4,47 +4,80 @@
   <meta charset="UTF-8">
   <title>ربط WHOOP واستخراج Access Token</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f0f0f0; direction: rtl; text-align: center; }
-    .box { background: white; padding: 2rem; border-radius: 10px; max-width: 500px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, button, textarea { width: 100%; margin: 10px 0; padding: 10px; font-size: 1em; }
-    textarea { height: 120px; }
+    body { font-family: Tahoma, sans-serif; background: #f0f2f5; margin: 0; padding: 2rem; text-align: center; direction: rtl; }
+    .box {
+      background: white; padding: 2rem; border-radius: 12px;
+      max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, button, textarea {
+      width: 100%; padding: 10px; font-size: 1em; margin-top: 10px;
+      border-radius: 6px; border: 1px solid #ccc;
+    }
+    button {
+      background: #0066cc; color: white; cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover { background: #004c99; }
+    .hidden { display: none; }
+    .success { background: #e8f5e9; color: #2e7d32; padding: 1rem; border-radius: 6px; margin-top: 1rem; }
+    .error { background: #ffebee; color: #c62828; padding: 1rem; border-radius: 6px; margin-top: 1rem; }
   </style>
 </head>
 <body>
   <div class="box">
-    <h2>🔗 ربط WHOOP واستخراج Access Token</h2>
+    <h2>🔐 استخراج Access Token من WHOOP</h2>
 
-    <div id="form">
+    <div id="formSection">
       <input id="clientId" placeholder="Client ID">
       <input id="clientSecret" placeholder="Client Secret">
       <button onclick="startOAuth()">تسجيل الدخول إلى WHOOP</button>
     </div>
 
-    <div id="result" style="display:none;">
-      <h3>🎫 Access Token:</h3>
-      <textarea id="tokenBox" readonly></textarea>
+    <div id="tokenSection" class="hidden">
+      <h3>✅ تم استخراج Access Token</h3>
+      <textarea id="accessTokenBox" readonly></textarea>
+      <p id="expiresInfo"></p>
+      <button onclick="copyToken()">📋 نسخ التوكن</button>
     </div>
+
+    <div id="errorSection" class="error hidden"></div>
   </div>
 
   <script>
     const redirectUri = window.location.origin + window.location.pathname;
 
-function startOAuth() {
-  const clientId = document.getElementById("clientId").value.trim();
-  const clientSecret = document.getElementById("clientSecret").value.trim();
+    function showError(msg) {
+      const err = document.getElementById("errorSection");
+      err.classList.remove("hidden");
+      err.textContent = msg;
+    }
 
-  localStorage.setItem("client_id", clientId);
-  localStorage.setItem("client_secret", clientSecret);
+    function copyToken() {
+      const token = document.getElementById("accessTokenBox");
+      token.select();
+      document.execCommand("copy");
+      alert("✅ تم نسخ التوكن بنجاح!");
+    }
 
-  const state = Math.random().toString(36).substring(2, 12); // 10 حروف عشوائية
-  localStorage.setItem("oauth_state", state); // خزنه مؤقتاً لمقارنته لاحقاً
+    function startOAuth() {
+      const clientId = document.getElementById("clientId").value.trim();
+      const clientSecret = document.getElementById("clientSecret").value.trim();
 
-  const authUrl = `https://api.prod.whoop.com/oauth/oauth2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(window.location.origin + window.location.pathname)}&scope=read:recovery read:sleep read:cycles read:workout read:profile read:body_measurement&state=${state}`;
-  window.location.href = authUrl;
-}
+      if (!clientId || !clientSecret) {
+        showError("يرجى إدخال كل من Client ID و Client Secret.");
+        return;
+      }
 
+      const state = Math.random().toString(36).substring(2, 12);
+      localStorage.setItem("client_id", clientId);
+      localStorage.setItem("client_secret", clientSecret);
+      localStorage.setItem("oauth_state", state);
 
-    async function exchangeCodeForToken(code) {
+      const authUrl = `https://api.prod.whoop.com/oauth/oauth2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:recovery read:sleep read:cycles read:workout read:profile read:body_measurement&state=${state}`;
+      window.location.href = authUrl;
+    }
+
+    async function exchangeCode(code) {
       const clientId = localStorage.getItem("client_id");
       const clientSecret = localStorage.getItem("client_secret");
 
@@ -55,37 +88,47 @@ function startOAuth() {
       body.append("client_secret", clientSecret);
       body.append("redirect_uri", redirectUri);
 
-      const res = await fetch("https://api.prod.whoop.com/oauth/oauth2/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body
-      });
+      try {
+        const res = await fetch("https://api.prod.whoop.com/oauth/oauth2/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body
+        });
 
-      const json = await res.json();
-      document.getElementById("form").style.display = "none";
-      document.getElementById("result").style.display = "block";
-      document.getElementById("tokenBox").value = json.access_token || JSON.stringify(json, null, 2);
-    }
+        const data = await res.json();
 
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    if (code) {
-      exchangeCodeForToken(code);
+        if (data.access_token) {
+          document.getElementById("formSection").classList.add("hidden");
+          document.getElementById("tokenSection").classList.remove("hidden");
+          document.getElementById("accessTokenBox").value = data.access_token;
+          document.getElementById("expiresInfo").innerText = `⏱️ صالح لمدة: ${data.expires_in} ثانية`;
+
+          // نظف البيانات
+          localStorage.removeItem("client_id");
+          localStorage.removeItem("client_secret");
+          localStorage.removeItem("oauth_state");
+        } else {
+          showError("فشل استخراج التوكن:\n" + JSON.stringify(data, null, 2));
+        }
+      } catch (err) {
+        showError("حدث خطأ أثناء الاتصال بـ WHOOP:\n" + err.message);
+      }
     }
 
     window.onload = () => {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get("code");
-  const state = params.get("state");
-  const storedState = localStorage.getItem("oauth_state");
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const state = params.get("state");
+      const savedState = localStorage.getItem("oauth_state");
 
-  if (code && state === storedState) {
-    exchangeCodeForToken(code);
-  } else if (state && state !== storedState) {
-    alert("❌ فشل التحقق من state. يرجى المحاولة من جديد.");
-  }
-};
-
+      if (code) {
+        if (state !== savedState) {
+          showError("⚠️ تحقّق state غير مطابق، يرجى المحاولة مجددًا.");
+        } else {
+          exchangeCode(code);
+        }
+      }
+    };
   </script>
 </body>
 </html>
