@@ -29,16 +29,20 @@
   <script>
     const redirectUri = window.location.origin + window.location.pathname;
 
-    function startOAuth() {
-      const clientId = document.getElementById("clientId").value.trim();
-      const clientSecret = document.getElementById("clientSecret").value.trim();
+function startOAuth() {
+  const clientId = document.getElementById("clientId").value.trim();
+  const clientSecret = document.getElementById("clientSecret").value.trim();
 
-      localStorage.setItem("client_id", clientId);
-      localStorage.setItem("client_secret", clientSecret);
+  localStorage.setItem("client_id", clientId);
+  localStorage.setItem("client_secret", clientSecret);
 
-      const authUrl = `https://api.prod.whoop.com/oauth/oauth2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:recovery read:sleep read:cycles read:workout read:profile read:body_measurement`;
-      window.location.href = authUrl;
-    }
+  const state = Math.random().toString(36).substring(2, 12); // 10 حروف عشوائية
+  localStorage.setItem("oauth_state", state); // خزنه مؤقتاً لمقارنته لاحقاً
+
+  const authUrl = `https://api.prod.whoop.com/oauth/oauth2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(window.location.origin + window.location.pathname)}&scope=read:recovery read:sleep read:cycles read:workout read:profile read:body_measurement&state=${state}`;
+  window.location.href = authUrl;
+}
+
 
     async function exchangeCodeForToken(code) {
       const clientId = localStorage.getItem("client_id");
