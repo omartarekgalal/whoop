@@ -72,6 +72,20 @@ function startOAuth() {
     if (code) {
       exchangeCodeForToken(code);
     }
+
+    window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  const state = params.get("state");
+  const storedState = localStorage.getItem("oauth_state");
+
+  if (code && state === storedState) {
+    exchangeCodeForToken(code);
+  } else if (state && state !== storedState) {
+    alert("❌ فشل التحقق من state. يرجى المحاولة من جديد.");
+  }
+};
+
   </script>
 </body>
 </html>
