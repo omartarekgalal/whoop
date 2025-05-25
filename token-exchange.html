@@ -2,54 +2,24 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>استخراج Access Token من WHOOP</title>
+  <title>ربط WHOOP واستخراج Access Token</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f2f2f2; direction: rtl; text-align: center; }
+    body { font-family: sans-serif; padding: 2rem; background: #f0f0f0; direction: rtl; text-align: center; }
     .box { background: white; padding: 2rem; border-radius: 10px; max-width: 500px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, textarea, button { width: 100%; margin-top: 10px; padding: 10px; font-size: 1em; }
-    textarea { height: 100px; }
+    input, button, textarea { width: 100%; margin: 10px 0; padding: 10px; font-size: 1em; }
+    textarea { height: 120px; }
   </style>
 </head>
 <body>
   <div class="box">
-    <h2>🔐 استخراج Access Token من WHOOP</h2>
+    <h2>🔗 ربط WHOOP واستخراج Access Token</h2>
 
-    <input id="clientId" placeholder="Client ID">
-    <input id="clientSecret" placeholder="Client Secret">
-    <input id="authCode" placeholder="Authorization Code (من صفحة الكود)">
-    <button onclick="exchangeToken()">احصل على Access Token</button>
+    <div id="form">
+      <input id="clientId" placeholder="Client ID">
+      <input id="clientSecret" placeholder="Client Secret">
+      <button onclick="startOAuth()">تسجيل الدخول إلى WHOOP</button>
+    </div>
 
-    <h3>🎫 Access Token:</h3>
-    <textarea id="output" readonly></textarea>
-  </div>
-
-  <script>
-    async function exchangeToken() {
-      const clientId = document.getElementById("clientId").value;
-      const clientSecret = document.getElementById("clientSecret").value;
-      const authCode = document.getElementById("authCode").value;
-      const redirectUri = "https://omartarekgalal.github.io/whoop/oauth-callback.html"; // نفس اللي استخدمته في WHOOP Dashboard
-
-      const body = new URLSearchParams();
-      body.append("grant_type", "authorization_code");
-      body.append("code", authCode);
-      body.append("client_id", clientId);
-      body.append("client_secret", clientSecret);
-      body.append("redirect_uri", redirectUri);
-
-      try {
-        const res = await fetch("https://api.prod.whoop.com/oauth/oauth2/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: body
-        });
-
-        const json = await res.json();
-        document.getElementById("output").value = json.access_token || JSON.stringify(json, null, 2);
-      } catch (err) {
-        document.getElementById("output").value = "حدث خطأ: " + err.message;
-      }
-    }
-  </script>
-</body>
-</html>
+    <div id="result" style="display:none;">
+      <h3>🎫 Access Token:</h3>
+      <textarea id="tokenBox" readonly></textarea>
